@@ -1,6 +1,10 @@
+"""
+A run script for training NN model on GTSRB
+"""
+
 import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "6"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 from lib.keras_utils import *
 from lib.OptCarlini import *

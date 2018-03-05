@@ -109,18 +109,63 @@ def build_cnn():
 #---------------------------------- Utility -----------------------------------#
 
 
-def gradient_fn(model):
+def gradient_model(model):
     """Return gradient function of model's loss w.r.t. input"""
 
-    x_in = K.placeholder(dtype=tf.float32, shape=INPUT_SHAPE)
     y_true = K.placeholder(shape=(OUTPUT_DIM, ))
-    loss = K.categorical_crossentropy(y_true, model(x_in)[0], from_logits=True)
-    grad = K.gradients(loss, x_in)
+    loss = model.loss_functions[0](y_true, model.output)
+    grad = K.gradients(loss, model.input)
 
-    return K.function([x_in, y_true, K.learning_phase()], grad)
+    return K.function([model.input, y_true, K.learning_phase()], grad)
+
+
+def gradient_fn(model):
+    """Return gradient function of cross entropy loss w.r.t. input"""
+
+    y_true = K.placeholder(shape=(OUTPUT_DIM, ))
+    loss = tf.nn.softmax_cross_entropy_with_logits(
+        labels=y_true, logits=model.output)
+    grad = K.gradients(loss, model.input)
+
+    return K.function([model.input, y_true, K.learning_phase()], grad)
 
 
 def gradient_input(grad_fn, x, y):
     """Wrapper function to use gradient function more cleanly"""
 
     return grad_fn([x.reshape(INPUT_SHAPE), y, 0])[0][0]
+
+
+def gen_adv_loss(logits, y, loss='logloss', mean=False):
+    """
+    Generate the loss function.
+    """
+
+    if loss == 'training':
+        # use the model's output instead of the true labels to avoid
+        # label leaking at training time
+        y = K.cast(K.equal(logits, K.max(logits, 1, keepdims=True)), "float32")
+        y = y / K.sum(y, 1, keepdims=True)
+        out = K.categorical_crossentropy(y, logits, from_logits=True)
+    elif loss == 'logloss':
+        out = K.categorical_crossentropy(y, logits, from_logits=True)
+    else:
+        raise ValueError("Unknown loss: {}".format(loss))
+
+    if mean:
+        out = K.mean(out)
+    # else:
+    #     out = K.sum(out)
+    return out
+
+
+def gen_grad(x, logits, y, loss='logloss'):
+    """
+    Generate the gradient of the loss function.
+    """
+
+    adv_loss = gen_adv_loss(logits, y, loss)
+
+    # Define gradient of loss wrt input
+    grad = K.gradients(adv_loss, [x])[0]
+    return grad

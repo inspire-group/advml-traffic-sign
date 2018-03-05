@@ -1,3 +1,7 @@
+"""
+Define project-wide parameters in this 'configuration' file
+"""
+
 # Import packages for all files
 import os
 import pickle
@@ -18,13 +22,23 @@ from pandas.io.parsers import read_csv
 from scipy import misc
 from tensorflow.contrib.opt import ScipyOptimizerInterface
 
-# Set constants
+# Set constants (MNIST)
+# NUM_LABELS = 10                             # Number of labels
+# BATCH_SIZE = 32                             # Size of batch
+# HEIGHT = 28                                 # Height of input image
+# WIDTH = 28                                  # Width of input image
+# N_CHANNEL = 1                               # Number of channels
+# OUTPUT_DIM = 10                             # Number of output dimension
+
+# Set constants (GTSRB)
 NUM_LABELS = 43                             # Number of labels
 BATCH_SIZE = 32                             # Size of batch
 HEIGHT = 32                                 # Height of input image
 WIDTH = 32                                  # Width of input image
 N_CHANNEL = 3                               # Number of channels
 OUTPUT_DIM = 43                             # Number of output dimension
+
+# Set training hyperparameters
 NUM_EPOCH = 100                             # Number of epoch to train
 LR = 0.0001                                 # Learning rate
 L2_LAMBDA = 0.0001                          # Lambda for l2 regularization
@@ -37,5 +51,5 @@ DATA_DIR = "./input_data/"
 
 INPUT_SHAPE = (1, HEIGHT, WIDTH, N_CHANNEL)  # Input shape of model
 IMG_SHAPE = (HEIGHT, WIDTH, N_CHANNEL)
-IMAGE_SIZE = (HEIGHT, WIDTH)                 # Height and width of resized image
-N_FEATURE = HEIGHT * WIDTH * N_CHANNEL       # Number of input dimension
+IMAGE_SIZE = (HEIGHT, WIDTH)                # Height and width of resized image
+N_FEATURE = HEIGHT * WIDTH * N_CHANNEL      # Number of input dimension

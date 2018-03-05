@@ -11,10 +11,8 @@ MAX_CP = 2.   # Maximum power index of c
 SCORE_THRES = 0.99  # Softmax score threshold to consider success of attacks
 PROG_PRINT_STEPS = 200  # Print progress every certain steps
 EARLYSTOP_STEPS = 1000  # Early stopping if no improvement for certain steps
-INT_TRN = 0.07  # Intensity of randomness (for transform)
-
-DELTA_BRI = 0.15
-THRES = 0.05
+INT_TRN = 0.07    # Degree of randomness (for perspective transform)
+DELTA_BRI = 0.15  # Degree of randomness (for brightness adjust)
 
 
 class OptProjTran:
@@ -28,7 +26,7 @@ class OptProjTran:
     def _setup_opt(self):
         """Used to setup optimization when c is updated"""
 
-        # obj_func = c * loss + l2-norm(d)
+        # obj_func = c * loss + l2-norm(d) (+ smoothness penalty)
         self.f = self.c * self.loss + self.c_smooth * self.smooth + self.norm
         # Setup optimizer
         if self.use_bound:
@@ -42,8 +40,6 @@ class OptProjTran:
             global_step = tf.Variable(0, trainable=False)
 
             if self.decay:
-                # lr = tf.train.exponential_decay(
-                #     self.lr, global_step, 100, 0.95, staircase=False)
                 lr = tf.train.inverse_time_decay(
                     self.lr, global_step, 50, 0.01, staircase=True)
             else:
@@ -51,8 +47,6 @@ class OptProjTran:
             # Use Adam optimizer
             self.optimizer = tf.train.AdamOptimizer(
                 learning_rate=lr, beta1=0.9, beta2=0.999, epsilon=1e-08)
-            # self.optimizer = tf.train.GradientDescentOptimizer(
-            #     learning_rate=lr)
             self.opt = self.optimizer.minimize(
                 self.f, var_list=self.var_list, global_step=global_step)
 
@@ -102,6 +96,15 @@ class OptProjTran:
                      optimize() and optimize_search().
         batch_size : (optional) int (default: BATCH_SIZE)
                      Define number of transformed images to use
+        sp_size    : (optional) np.array, shape=(batch_size, 2) (default: 600)
+                     Specify upsampling size for each transformed sample.
+        rnd_tran   : (optional) float (default: INT_TRN)
+                     Degree of randomness for perspective transformation
+        rnd_bri    : (optional) float (default: DELTA_BRI)
+                     Degree of randomness for brightness adjustment
+        c_smooth   : (optional) float (default: 0)
+                     An experimental param to force the optimization to look for
+                     smoother perturbation
         """
 
         self.model = model
@@ -149,7 +152,7 @@ class OptProjTran:
             else:
                 self.d = d
             self.x_in = self.x + self.d
-            # Require clipping
+            # Require clipping - projection to feasible region
             self.x_d = tf.clip_by_value(self.x_in, 0, 1)
             self.var_list = [d]
 
@@ -217,13 +220,14 @@ class OptProjTran:
         if p_norm == "2":
             norm = tf.norm(self.d, ord='euclidean')
         elif p_norm == "1":
-            #norm = tf.norm(self.d, ord=1)
-            norm = tf.reduce_sum(tf.maximum(tf.abs(self.d) - THRES, 0))
+            norm = tf.norm(self.d, ord=1)
         elif p_norm == "inf":
             norm = tf.norm(self.d, ord=np.inf)
         else:
             raise ValueError("Invalid norm_op")
 
+        # Find difference between each pixel and the ones next to it. Penalize
+        # this difference to make the perturbation look smoother
         d_x = tf.concat([self.d[:, WIDTH - 1:, :],
                          self.d[:, :WIDTH - 1, :]], axis=1)
         d_y = tf.concat([self.d[HEIGHT - 1:, :, :],
@@ -363,9 +367,8 @@ class OptProjTran:
                     norm = sess.run(self.norm, feed_dict=feed_dict)
                     loss = sess.run(self.loss, feed_dict=feed_dict)
                     smooth = sess.run(self.smooth, feed_dict=feed_dict)
-                    print("Step: {}, norm={:.3f}, loss={:.3f}, smooth={:.3f}, obj={:.3f}".format(
-                        step, norm, loss, smooth, f))
-                    # print(sess.run(self.model_output, feed_dict=feed_dict)[0])
+                    print(("Step: {}, norm={:.3f}, loss={:.3f}, smooth={:.3f},"
+                           " obj={:.3f}").format(step, norm, loss, smooth, f))
 
             if min_d is not None:
                 x_adv = (x_ + min_d).reshape(IMG_SHAPE)
