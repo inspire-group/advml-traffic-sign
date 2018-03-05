@@ -15,4 +15,5 @@ The main code we used to run the experiments is in [Run_Robust_Attack.ipynb](./R
 Examples of previously proposed adversarial examples generation methods are listed in [GTSRB.ipynb](./GTSRB.ipynb).  
 Relevant parameters are set in a separate configure file called [parameters.py](./parameters.py).
 
-Author: Comments and suggestions can be sent to Chawin Sitawarin (<chawins@princeton.edu>) and Arjun Nitin Bhagoji (<abhagoji@princeton.edu>).
+## Contact
+Comments and suggestions can be sent to Chawin Sitawarin (<chawins@princeton.edu>) and Arjun Nitin Bhagoji (<abhagoji@princeton.edu>).
