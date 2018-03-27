@@ -1,0 +1,23 @@
+input_data/
+*.pyc
+.ipynb_checkpoints/
+.vscode
+*_tmp.py
+test_*
+Stop_Sign_Dataset/
+save*
+nohup*
+fig/
+tmp/
+vis*
+physical_adv/
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

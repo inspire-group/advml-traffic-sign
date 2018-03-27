@@ -70,8 +70,10 @@ def resize_all(images, interp='bilinear'):
 
     if images[0].ndim == 3:
         shape = (len(images),) + IMAGE_SIZE + (N_CHANNEL,)
-    else:
+    elif images[0].ndim == 2:
         shape = (len(images),) + IMAGE_SIZE
+    else:
+        return
     images_rs = np.zeros(shape)
     for i, image in enumerate(images):
         images_rs[i] = resize(image, interp=interp)
@@ -85,7 +87,7 @@ def check_mask(mask):
     return (area_ratio > MASK_THRES_MIN) and (area_ratio < MASK_THRES_MAX)
 
 
-def load_samples(img_dir, label_path):
+def load_samples(img_dir, label_path, is_mask=True):
     """Load sample images, resize and find masks"""
 
     # Load images
@@ -94,21 +96,22 @@ def load_samples(img_dir, label_path):
     ex_ind = []
     masks_full = []
 
-    for i, image in enumerate(images):
-        # Find sign area from full-sized image
-        mask = find_sign_area(rgb2gray(image))
-        # Keep only valid mask
-        if check_mask(mask):
-            masks_full.append(mask)
-        else:
-            ex_ind.append(i)
+    if is_mask:
+        for i, image in enumerate(images):
+            # Find sign area from full-sized image
+            mask = find_sign_area(rgb2gray(image))
+            # Keep only valid mask
+            if check_mask(mask):
+                masks_full.append(mask)
+            else:
+                ex_ind.append(i)
 
-    # Resize mask to IMAGE_SIZE
-    masks = resize_all(masks_full, interp='nearest')
-
-    # Exclude images that don't produce valid mask
-    x_ben_full = np.delete(images, ex_ind, axis=0)
-
+        # Resize mask to IMAGE_SIZE
+        masks = resize_all(masks_full, interp='nearest')
+        # Exclude images that don't produce valid mask
+        x_ben_full = np.delete(images, ex_ind, axis=0)
+    else:
+        x_ben_full = images
     # Resize images
     x_ben = resize_all(x_ben_full, interp='bilinear')
 
@@ -117,9 +120,15 @@ def load_samples(img_dir, label_path):
         y_ben = np.delete(labels, ex_ind, axis=0)
         # One-hot encode labels
         y_ben = keras.utils.to_categorical(y_ben, NUM_LABELS)
-        return x_ben, x_ben_full, y_ben, masks, masks_full
+        if is_mask:
+            return x_ben, x_ben_full, y_ben, masks, masks_full
+        else:
+            return x_ben, x_ben_full, y_ben
     else:
-        return x_ben, x_ben_full, masks, masks_full
+        if is_mask:
+            return x_ben, x_ben_full, masks, masks_full
+        else:
+            return x_ben, x_ben_full
 
 
 def softmax(x):
